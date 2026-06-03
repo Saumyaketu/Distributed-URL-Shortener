@@ -1,5 +1,9 @@
 import { validationResult } from "express-validator";
-import { createShortUrl } from "../services/url.service.js";
+import {
+  createShortUrl,
+  getUserUrls,
+  deleteUserUrl,
+} from "../services/url.service.js";
 import Url from "../models/Url.js";
 
 export const createUrl = async (req, res, next) => {
@@ -51,6 +55,33 @@ export const redirectUrl = async (req, res, next) => {
     await url.save();
 
     return res.redirect(url.originalUrl);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getUrls = async (req, res, next) => {
+  try {
+    const urls = await getUserUrls(req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      count: urls.length,
+      data: urls,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteUrl = async (req, res, next) => {
+  try {
+    await deleteUserUrl(req.params.id, req.user.userId);
+
+    res.status(200).json({
+      success: true,
+      message: "URL deleted successfully",
+    });
   } catch (error) {
     next(error);
   }
