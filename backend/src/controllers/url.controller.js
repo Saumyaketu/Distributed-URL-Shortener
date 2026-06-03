@@ -4,6 +4,7 @@ import {
   getUserUrls,
   deleteUserUrl,
 } from "../services/url.service.js";
+import { getCachedUrl, cacheUrl } from "../services/cache.service.js";
 import Url from "../models/Url.js";
 
 export const createUrl = async (req, res, next) => {
@@ -37,6 +38,20 @@ export const createUrl = async (req, res, next) => {
 export const redirectUrl = async (req, res, next) => {
   try {
     const { shortCode } = req.params;
+    let cachedUrl = null;
+
+    try {
+      cachedUrl = await getCachedUrl(shortCode);
+    } catch (err) {
+      console.error("Cache read failed:", err.message);
+    }
+
+    if (cachedUrl) {
+      console.log("CACHE HIT");
+      return res.redirect(cachedUrl);
+    }
+
+    console.log("CACHE MISS");
 
     const url = await Url.findOne({
       shortCode,
@@ -48,6 +63,12 @@ export const redirectUrl = async (req, res, next) => {
         success: false,
         message: "URL not found",
       });
+    }
+
+    try {
+      await cacheUrl(shortCode, url.originalUrl);
+    } catch (err) {
+      console.error("Cache write failed:", err.message);
     }
 
     url.clickCount += 1;
@@ -83,6 +104,13 @@ export const deleteUrl = async (req, res, next) => {
       message: "URL deleted successfully",
     });
   } catch (error) {
+    if (error.message === "URL not found") {
+      return res.status(404).json({
+        success: false,
+        message: "URL not found",
+      });
+    }
+
     next(error);
   }
 };

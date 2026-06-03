@@ -14,10 +14,10 @@ Backend-heavy URL shortening service built with:
 - Password Hashing
 - JWT Authentication
 - URL Shortening
+- Redis Caching
 
 ## Upcoming Features
 
-- Redis Caching
 - Analytics
 - Rate Limiting
 - Docker Deployment
