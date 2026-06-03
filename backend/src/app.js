@@ -3,6 +3,9 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 
+import authRoutes from "./routes/auth.routes.js";
+import { errorHandler } from "./middleware/error.middleware.js";
+
 const app = express();
 
 app.use(express.json());
@@ -16,5 +19,8 @@ app.get("/", (req, res) => {
     message: "Distributed URL Shortener API",
   });
 });
+
+app.use("/api/auth", authRoutes);
+app.use(errorHandler);
 
 export default app;
