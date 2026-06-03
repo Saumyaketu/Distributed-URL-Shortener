@@ -1,5 +1,6 @@
 import Url from "../models/Url.js";
 import generateShortCode from "../utils/generateShortCode.js";
+import { deleteCachedUrl } from "./cache.service.js";
 
 export const createShortUrl = async (originalUrl, userId) => {
   let shortCode = generateShortCode();
@@ -67,6 +68,7 @@ export const deleteUserUrl = async (urlId, userId) => {
     throw new Error("URL not found");
   }
 
+  await deleteCachedUrl(url.shortCode);
   await url.deleteOne();
 
   return true;

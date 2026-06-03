@@ -47,11 +47,11 @@ export const redirectUrl = async (req, res, next) => {
     }
 
     if (cachedUrl) {
-      console.log("CACHE HIT");
+      console.log(`CACHE HIT: ${shortCode}`);
       return res.redirect(cachedUrl);
     }
 
-    console.log("CACHE MISS");
+    console.log(`CACHE MISS: ${shortCode}`);
 
     const url = await Url.findOne({
       shortCode,
