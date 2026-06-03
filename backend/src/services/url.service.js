@@ -20,3 +20,16 @@ export const createShortUrl = async (originalUrl, userId) => {
 
   return url;
 };
+
+export const getUrlByShortCode = async (shortCode) => {
+  const url = await Url.findOne({
+    shortCode,
+    isActive: true,
+  });
+
+  if (!url) {
+    throw new Error("URL not found");
+  }
+
+  return url;
+};

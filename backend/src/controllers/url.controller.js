@@ -1,5 +1,6 @@
 import { validationResult } from "express-validator";
 import { createShortUrl } from "../services/url.service.js";
+import Url from "../models/Url.js";
 
 export const createUrl = async (req, res, next) => {
   try {
@@ -24,6 +25,32 @@ export const createUrl = async (req, res, next) => {
         shortUrl: `${process.env.BASE_URL}/${url.shortCode}`,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const redirectUrl = async (req, res, next) => {
+  try {
+    const { shortCode } = req.params;
+
+    const url = await Url.findOne({
+      shortCode,
+      isActive: true,
+    });
+
+    if (!url) {
+      return res.status(404).json({
+        success: false,
+        message: "URL not found",
+      });
+    }
+
+    url.clickCount += 1;
+
+    await url.save();
+
+    return res.redirect(url.originalUrl);
   } catch (error) {
     next(error);
   }
