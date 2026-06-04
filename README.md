@@ -16,9 +16,9 @@ Backend-heavy URL shortening service built with:
 - URL Shortening
 - Redis Caching
 - Analytics
+- Rate Limiting
 
 ## Upcoming Features
 
-- Rate Limiting
 - Docker Deployment
 - React TypeScript Frontend

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import authMiddleware from "../middleware/auth.middleware.js";
-import { createUrlLimiter } from "../middleware/rateLimit.middleware.js";
+import { createUrlLimiter } from "../middleware/redisRateLimit.middleware.js";
 import {
   createUrl,
   getUrls,
