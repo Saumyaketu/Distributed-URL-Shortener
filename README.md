@@ -15,10 +15,10 @@ Backend-heavy URL shortening service built with:
 - JWT Authentication
 - URL Shortening
 - Redis Caching
+- Analytics
 
 ## Upcoming Features
 
-- Analytics
 - Rate Limiting
 - Docker Deployment
 - React TypeScript Frontend
