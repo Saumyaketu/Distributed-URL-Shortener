@@ -18,12 +18,22 @@ export const getAnalytics = async (req, res, next) => {
         message: "Access denied",
       });
     }
-    
+
     const analytics = await getAnalyticsByUrlId(req.params.urlId);
 
     res.status(200).json({
       success: true,
-      data: analytics,
+      data: {
+        url: {
+          id: url._id,
+          shortCode: url.shortCode,
+          originalUrl: url.originalUrl,
+          clickCount: url.clickCount,
+          createdAt: url.createdAt,
+        },
+
+        analytics,
+      },
     });
   } catch (error) {
     next(error);
