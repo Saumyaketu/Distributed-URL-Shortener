@@ -42,7 +42,10 @@ export const redirectUrl = async (req, res, next) => {
     let cachedUrl = null;
 
     try {
-      cachedUrl = await getCachedUrl(shortCode);
+      const rawCache = await getCachedUrl(shortCode);
+      if (rawCache) {
+        cachedUrl = JSON.parse(rawCache);
+      }
     } catch (err) {
       console.error("Cache read failed:", err.message);
     }
@@ -71,10 +74,11 @@ export const redirectUrl = async (req, res, next) => {
     }
 
     try {
-      await cacheUrl(shortCode, {
+      const dataToCache = JSON.stringify({
         urlId: url._id,
         originalUrl: url.originalUrl,
       });
+      await cacheUrl(shortCode, dataToCache);
     } catch (err) {
       console.error("Cache write failed:", err.message);
     }

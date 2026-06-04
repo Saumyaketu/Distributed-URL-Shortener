@@ -12,8 +12,8 @@ export const createRateLimiter = ({ windowInSeconds, maxRequests, prefix }) => {
         await client.set(key, 1, {
           EX: windowInSeconds,
         });
-        res.setHeader("RateLimit-Limit", maxRequests);
-        res.setHeader("RateLimit-Remaining", maxRequests - 1);
+        res.setHeader("X-RateLimit-Limit", maxRequests);
+        res.setHeader("X-RateLimit-Remaining", maxRequests - 1);
 
         return next();
       }
