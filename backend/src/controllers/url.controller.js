@@ -3,9 +3,10 @@ import {
   createShortUrl,
   getUserUrls,
   deleteUserUrl,
+  getUrlByShortCode,
 } from "../services/url.service.js";
+import { recordClick } from "../services/analytics.service.js";
 import { getCachedUrl, cacheUrl } from "../services/cache.service.js";
-import Url from "../models/Url.js";
 
 export const createUrl = async (req, res, next) => {
   try {
@@ -48,15 +49,19 @@ export const redirectUrl = async (req, res, next) => {
 
     if (cachedUrl) {
       console.log(`CACHE HIT: ${shortCode}`);
-      return res.redirect(cachedUrl);
+      recordClick({
+        urlId: cachedUrl.urlId,
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+        referrer: req.headers.referer || "Direct",
+      }).catch(console.error);
+
+      return res.redirect(cachedUrl.originalUrl);
     }
 
     console.log(`CACHE MISS: ${shortCode}`);
 
-    const url = await Url.findOne({
-      shortCode,
-      isActive: true,
-    });
+    const url = await getUrlByShortCode(shortCode);
 
     if (!url) {
       return res.status(404).json({
@@ -66,14 +71,20 @@ export const redirectUrl = async (req, res, next) => {
     }
 
     try {
-      await cacheUrl(shortCode, url.originalUrl);
+      await cacheUrl(shortCode, {
+        urlId: url._id,
+        originalUrl: url.originalUrl,
+      });
     } catch (err) {
       console.error("Cache write failed:", err.message);
     }
 
-    url.clickCount += 1;
-
-    await url.save();
+    recordClick({
+      urlId: url._id,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"],
+      referrer: req.headers.referer || "Direct",
+    }).catch(console.error);
 
     return res.redirect(url.originalUrl);
   } catch (error) {
