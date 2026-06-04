@@ -35,7 +35,7 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/urls", urlRoutes);
-app.set("trust proxy", true);
+app.set("trust proxy", 1);
 app.use("/api/analytics", analyticsRoutes);
 
 app.get("/:shortCode", redirectUrl);
