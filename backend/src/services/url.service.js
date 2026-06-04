@@ -58,6 +58,10 @@ export const getUserUrls = async (userId) => {
   return urls;
 };
 
+export const getUrlById = async (urlId) => {
+  return await Url.findById(urlId);
+};
+
 export const deleteUserUrl = async (urlId, userId) => {
   const url = await Url.findOne({
     _id: urlId,
