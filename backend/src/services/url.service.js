@@ -35,21 +35,6 @@ export const getUrlByShortCode = async (shortCode) => {
   return url;
 };
 
-export const redirectUrl = async (req, res, next) => {
-  try {
-    const url = await getUrlByShortCode(req.params.shortCode);
-    url.clickCount += 1;
-    await url.save();
-
-    return res.redirect(url.originalUrl);
-  } catch (error) {
-    return res.status(404).json({
-      success: false,
-      message: "URL not found",
-    });
-  }
-};
-
 export const getUserUrls = async (userId) => {
   const urls = await Url.find({
     user: userId,
