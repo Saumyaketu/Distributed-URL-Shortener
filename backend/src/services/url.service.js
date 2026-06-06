@@ -62,3 +62,21 @@ export const deleteUserUrl = async (urlId, userId) => {
 
   return true;
 };
+
+export const updateUserUrl = async (urlId, userId, originalUrl) => {
+  const url = await Url.findOne({
+    _id: urlId,
+    user: userId,
+  });
+
+  if (!url) {
+    throw new Error("URL not found");
+  }
+
+  url.originalUrl = originalUrl;
+  
+  await deleteCachedUrl(url.shortCode);
+  await url.save();
+
+  return url;
+};

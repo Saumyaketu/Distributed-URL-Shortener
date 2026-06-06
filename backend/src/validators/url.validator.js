@@ -8,3 +8,11 @@ export const createUrlValidator = [
     .isURL()
     .withMessage("Invalid URL"),
 ];
+
+export const updateUrlValidator = [
+  body("originalUrl")
+    .notEmpty()
+    .withMessage("Original URL is required")
+    .isURL()
+    .withMessage("Valid URL is required"),
+];

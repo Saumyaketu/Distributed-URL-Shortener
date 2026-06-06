@@ -4,6 +4,7 @@ import {
   getUserUrls,
   deleteUserUrl,
   getUrlByShortCode,
+  updateUserUrl,
 } from "../services/url.service.js";
 import { recordClick } from "../services/analytics.service.js";
 import { getCachedUrl, cacheUrl } from "../services/cache.service.js";
@@ -117,6 +118,44 @@ export const deleteUrl = async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: "URL deleted successfully",
+    });
+  } catch (error) {
+    if (error.message === "URL not found") {
+      return res.status(404).json({
+        success: false,
+        message: "URL not found",
+      });
+    }
+
+    next(error);
+  }
+};
+
+export const updateUrl = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array(),
+      });
+    }
+
+    const url = await updateUserUrl(
+      req.params.id,
+      req.user.userId,
+      req.body.originalUrl,
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "URL updated successfully",
+      data: {
+        id: url._id,
+        originalUrl: url.originalUrl,
+        shortCode: url.shortCode,
+      },
     });
   } catch (error) {
     if (error.message === "URL not found") {
