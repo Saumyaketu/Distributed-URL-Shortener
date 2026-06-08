@@ -13,7 +13,7 @@ type RegisterForm = {
 };
 
 const RegisterPage = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, setUser } = useAuth();
   const navigate = useNavigate();
   const [serverError, setServerError] = useState("");
 
@@ -38,9 +38,9 @@ const RegisterPage = () => {
   const onSubmit = async (data: RegisterForm) => {
     try {
       setServerError("");
-      await registerUser(data.name, data.email, data.password);
-
-      navigate("/login");
+      const result = await registerUser(data.name, data.email, data.password);
+      setUser(result.data.user);
+      navigate("/");
     } catch (error: any) {
       console.error(error);
       setServerError(
