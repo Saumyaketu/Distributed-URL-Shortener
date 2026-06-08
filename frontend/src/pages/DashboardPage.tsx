@@ -81,7 +81,7 @@ const DashboardPage = () => {
   };
 
   const copyToClipboard = (shortCode: string) => {
-    const fullUrl = `${import.meta.env.VITE_BASE_URL}/${shortCode}`;
+    const fullUrl = `${import.meta.env.VITE_BACKEND_URL}/${shortCode}`;
     navigator.clipboard.writeText(fullUrl);
     alert("Copied to clipboard!");
   };
@@ -151,7 +151,7 @@ const DashboardPage = () => {
                 <div className="overflow-hidden w-full md:w-auto">
                   <div className="flex items-center gap-2 mb-1">
                     <a
-                      href={`${import.meta.env.VITE_BASE_URL}/${url.shortCode}`}
+                      href={`${import.meta.env.VITE_BACKEND_URL}/${url.shortCode}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 font-bold text-lg hover:underline flex items-center gap-1"
