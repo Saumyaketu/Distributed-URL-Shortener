@@ -28,7 +28,7 @@ export const getAnalytics = async (req, res, next) => {
           id: url._id,
           shortCode: url.shortCode,
           originalUrl: url.originalUrl,
-          clickCount: url.clickCount,
+          clickCount: analytics.totalClicks,
           createdAt: url.createdAt,
         },
 

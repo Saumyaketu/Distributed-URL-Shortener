@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Loader2, Copy, Trash2, ExternalLink } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Loader2,
+  Copy,
+  Trash2,
+  ExternalLink,
+  BarChart,
+  User,
+} from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
 import { logoutUser } from "../services/auth.service";
@@ -84,8 +91,9 @@ const DashboardPage = () => {
       <div className="flex justify-between items-center mb-8 pb-4 border-b">
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <div className="flex items-center gap-4">
+          <User size={20} />
           <span className="text-gray-600 font-medium">
-            Welcome, {user?.name || "User"}
+            {user?.name || "User"}
           </span>
           <button
             onClick={handleLogout}
@@ -110,7 +118,7 @@ const DashboardPage = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-3 bg-black text-white rounded-md font-medium disabled:opacity-50 flex items-center justify-center min-w-[120px]"
+            className="px-6 py-3 bg-black text-white rounded-md font-medium disabled:opacity-50 flex items-center justify-center min-w-30"
           >
             {isSubmitting ? (
               <Loader2 className="animate-spin h-5 w-5" />
@@ -180,6 +188,14 @@ const DashboardPage = () => {
                   >
                     <Trash2 className="h-5 w-5" />
                   </button>
+
+                  <Link
+                    to={`/analytics/${url._id}`}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    title="View Analytics"
+                  >
+                    <BarChart className="h-5 w-5" />
+                  </Link>
                 </div>
               </div>
             ))}
