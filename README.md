@@ -18,7 +18,4 @@ Backend-heavy URL shortening service built with:
 - Analytics
 - Rate Limiting
 - Docker Deployment
-
-## Upcoming Features
-
 - React TypeScript Frontend

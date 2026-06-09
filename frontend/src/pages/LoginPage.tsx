@@ -25,7 +25,7 @@ const LoginPage = () => {
   }
 
   if (user) {
-    return <Navigate to="/" />;
+    return <Navigate to="/dashboard" />;
   }
 
   const {
@@ -40,7 +40,7 @@ const LoginPage = () => {
       const result = await loginUser(data.email, data.password);
       setUser(result.data.user);
 
-      navigate("/");
+      navigate("/dashboard");
     } catch (error: any) {
       console.error(error);
       setServerError(

@@ -50,7 +50,7 @@ const AnalyticsPage = () => {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       <Link
-        to="/"
+        to="/dashboard"
         className="text-blue-600 hover:underline flex items-center gap-2 mb-6"
       >
         <ArrowLeft className="h-4 w-4" /> Back to Dashboard

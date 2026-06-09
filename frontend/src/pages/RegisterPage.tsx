@@ -26,7 +26,7 @@ const RegisterPage = () => {
   }
 
   if (user) {
-    return <Navigate to="/" />;
+    return <Navigate to="/dashboard" />;
   }
 
   const {
@@ -40,7 +40,7 @@ const RegisterPage = () => {
       setServerError("");
       const result = await registerUser(data.name, data.email, data.password);
       setUser(result.data.user);
-      navigate("/");
+      navigate("/dashboard");
     } catch (error: any) {
       console.error(error);
       setServerError(
