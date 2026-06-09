@@ -1,23 +1,11 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import {
-  Loader2,
-  Copy,
-  Trash2,
-  ExternalLink,
-  BarChart,
-  User,
-} from "lucide-react";
+import { Link } from "react-router-dom";
+import { Loader2, Copy, Trash2, ExternalLink, BarChart } from "lucide-react";
 
-import { useAuth } from "../contexts/AuthContext";
-import { logoutUser } from "../services/auth.service";
 import { createUrl, getUserUrls, deleteUrl } from "../services/url.service";
 import type { Url } from "../types/url";
 
 const DashboardPage = () => {
-  const { user, setUser } = useAuth();
-  const navigate = useNavigate();
-
   const [urls, setUrls] = useState<Url[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,17 +25,6 @@ const DashboardPage = () => {
       console.error("Failed to fetch URLs", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logoutUser();
-      setUser(null);
-      navigate("/login");
-    } catch (error) {
-      console.error("Logout failed:", error);
-      alert("Failed to log out. Please try again.");
     }
   };
 
@@ -88,22 +65,6 @@ const DashboardPage = () => {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-8 pb-4 border-b">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex items-center gap-4">
-          <User size={20} />
-          <span className="text-gray-600 font-medium">
-            {user?.name || "User"}
-          </span>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md hover:bg-red-100 transition-colors font-medium text-sm"
-          >
-            Logout
-          </button>
-        </div>
-      </div>
-
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8 shadow-sm">
         <h2 className="text-xl font-semibold mb-4">Create New Short URL</h2>
         <form onSubmit={handleCreateUrl} className="flex gap-4">
