@@ -20,3 +20,14 @@ export const deleteCachedUrl = async (shortCode) => {
 
   await client.del(`url:${shortCode}`);
 };
+
+export const getNextUrlId = async () => {
+  const client = getRedisClient();
+  const exists = await client.exists("url_counter");
+  if (!exists) {
+    await client.set("url_counter", 56800235584);
+  }
+
+  const nextId = await client.incr("url_counter");
+  return nextId;
+};

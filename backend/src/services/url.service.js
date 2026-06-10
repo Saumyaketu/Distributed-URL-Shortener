@@ -1,17 +1,10 @@
 import Url from "../models/Url.js";
-import generateShortCode from "../utils/generateShortCode.js";
-import { deleteCachedUrl } from "./cache.service.js";
+import { encodeBase62 } from "../utils/base62.js";
+import { getNextUrlId, deleteCachedUrl } from "./cache.service.js";
 
 export const createShortUrl = async (originalUrl, userId) => {
-  let shortCode = generateShortCode();
-
-  while (
-    await Url.findOne({
-      shortCode,
-    })
-  ) {
-    shortCode = generateShortCode();
-  }
+  const uniqueId = await getNextUrlId();
+  const shortCode = encodeBase62(uniqueId);
 
   const url = await Url.create({
     originalUrl,
@@ -74,7 +67,7 @@ export const updateUserUrl = async (urlId, userId, originalUrl) => {
   }
 
   url.originalUrl = originalUrl;
-  
+
   await deleteCachedUrl(url.shortCode);
   await url.save();
 
