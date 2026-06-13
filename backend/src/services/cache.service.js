@@ -25,7 +25,7 @@ export const getNextUrlId = async () => {
   const client = getRedisClient();
   const exists = await client.exists("url_counter");
   if (!exists) {
-    await client.set("url_counter", 56800235584);
+    await client.set("url_counter", 1);
   }
 
   const nextId = await client.incr("url_counter");
