@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Copy, Trash2, ExternalLink, BarChart } from "lucide-react";
+import {
+  Loader2,
+  Copy,
+  Trash2,
+  ExternalLink,
+  BarChart,
+  QrCode,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import { QRCodeCanvas } from "qrcode.react";
 
 import { createUrl, getUserUrls, deleteUrl } from "../services/url.service";
 import type { Url } from "../types/url";
@@ -8,6 +17,7 @@ import type { Url } from "../types/url";
 const DashboardPage = () => {
   const [urls, setUrls] = useState<Url[]>([]);
   const [loading, setLoading] = useState(true);
+  const [qrModalUrl, setQrModalUrl] = useState<string | null>(null);
 
   const [newUrl, setNewUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -51,16 +61,35 @@ const DashboardPage = () => {
     try {
       await deleteUrl(id);
       setUrls(urls.filter((url) => url._id !== id));
+      toast.success("URL deleted successfully");
     } catch (err) {
       console.error("Failed to delete URL", err);
-      alert("Failed to delete URL");
+      toast.error("Failed to delete URL");
     }
   };
 
   const copyToClipboard = (shortCode: string) => {
     const fullUrl = `${import.meta.env.VITE_BASE_URL}/${shortCode}`;
     navigator.clipboard.writeText(fullUrl);
-    alert("Copied to clipboard!");
+    toast.success("Copied to clipboard!");
+  };
+
+  const downloadQRCode = () => {
+    const canvas = document.getElementById(
+      "qr-code-canvas",
+    ) as HTMLCanvasElement;
+    if (canvas) {
+      const pngUrl = canvas
+        .toDataURL("image/png")
+        .replace("image/png", "image/octet-stream");
+
+      const downloadLink = document.createElement("a");
+      downloadLink.href = pngUrl;
+      downloadLink.download = "short-url-qr.png";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
   };
 
   return (
@@ -143,11 +172,15 @@ const DashboardPage = () => {
                   </button>
 
                   <button
-                    onClick={() => handleDelete(url._id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                    title="Delete URL"
+                    onClick={() =>
+                      setQrModalUrl(
+                        `${import.meta.env.VITE_BASE_URL}/${url.shortCode}`,
+                      )
+                    }
+                    className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                    title="Generate QR Code"
                   >
-                    <Trash2 className="h-5 w-5" />
+                    <QrCode className="w-5 h-5" />
                   </button>
 
                   <Link
@@ -157,9 +190,53 @@ const DashboardPage = () => {
                   >
                     <BarChart className="h-5 w-5" />
                   </Link>
+
+                  <button
+                    onClick={() => handleDelete(url._id)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    title="Delete URL"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {qrModalUrl && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center space-y-4 max-w-sm w-full mx-4">
+              <h3 className="text-xl font-bold text-gray-800">Your QR Code</h3>
+
+              <div className="p-4 bg-white border-2 border-gray-100 rounded-xl">
+                <QRCodeCanvas
+                  value={qrModalUrl}
+                  size={200}
+                  id="qr-code-canvas"
+                  level={"H"}
+                />
+              </div>
+
+              <p className="text-sm text-gray-500 text-center break-all">
+                {qrModalUrl}
+              </p>
+
+              <div className="flex w-full gap-3 pt-2">
+                <button
+                  onClick={downloadQRCode}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Download
+                </button>
+                <button
+                  onClick={() => setQrModalUrl(null)}
+                  className="flex-1 bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
