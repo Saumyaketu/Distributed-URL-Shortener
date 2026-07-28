@@ -10,6 +10,7 @@ A high-performance, full-stack, distributed URL shortening service built with mo
 - **Analytics & Tracking**: Records metrics including device breakdowns (via `ua-parser-js`), referrers, and daily click distributions.
 - **Rate Limiting**: Built-in protection algorithms leveraging Redis to prevent DDoS and API abuse.
 - **Interactive UX**: Built with React & TypeScript, rendering Recharts visualizations, interactive QR code creators, and responsive error notifications (`react-hot-toast`).
+- **Link Expiration**: Custom time-to-live (TTL) settings, automatically invalidating stale cache entries and gracefully routing users to an expired landing page.
 - **Containerized Environment**: Full multi-container setups leveraging Docker and Docker Compose.
 
 ---
@@ -52,7 +53,10 @@ Running the application with Docker sets up the React Frontend, Node.js Backend,
    cd Distributed-URL-Shortener
    ```
 2. **Configure Environment Variables**
-    Ensure your environment variables are configured for both the backend and the frontend.
+    Ensure your environment variables are configured:
+   ```bash
+   cp .env.sample .env
+   ```
 3. **Build and Run the Containers**
     Execute this command from the root directory:
     ```bash

@@ -1,7 +1,15 @@
 import api from "../api/axios";
 
-export const createUrl = async (originalUrl: string, customAlias?: string) => {
-  const response = await api.post("/urls", { originalUrl, customAlias });
+export const createUrl = async (
+  originalUrl: string,
+  expiresAt?: string,
+  customAlias?: string,
+) => {
+  const response = await api.post("/urls", {
+    originalUrl,
+    expiresAt,
+    customAlias,
+  });
   return response.data;
 };
 

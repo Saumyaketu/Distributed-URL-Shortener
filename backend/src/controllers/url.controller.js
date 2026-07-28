@@ -7,7 +7,11 @@ import {
   updateUserUrl,
 } from "../services/url.service.js";
 import { recordClick } from "../services/analytics.service.js";
-import { getCachedUrl, cacheUrl } from "../services/cache.service.js";
+import {
+  getCachedUrl,
+  cacheUrl,
+  deleteCachedUrl,
+} from "../services/cache.service.js";
 
 export const createUrl = async (req, res, next) => {
   try {
@@ -20,7 +24,12 @@ export const createUrl = async (req, res, next) => {
       });
     }
 
-    const url = await createShortUrl(req.body.originalUrl, req.user.userId);
+    const { originalUrl, expiresAt } = req.body;
+    const url = await createShortUrl(
+      req.body.originalUrl,
+      req.user.userId,
+      expiresAt,
+    );
 
     res.status(201).json({
       success: true,
@@ -30,6 +39,7 @@ export const createUrl = async (req, res, next) => {
         originalUrl: url.originalUrl,
         shortCode: url.shortCode,
         shortUrl: `${process.env.BASE_URL}/${url.shortCode}`,
+        expiresAt: url.expiresAt,
       },
     });
   } catch (error) {
@@ -43,9 +53,9 @@ export const redirectUrl = async (req, res, next) => {
     let cachedUrl = null;
 
     try {
-      const rawCache = await getCachedUrl(shortCode);
-      if (rawCache) {
-        cachedUrl = JSON.parse(rawCache);
+      const cached = await getCachedUrl(shortCode);
+      if (cached) {
+        cachedUrl = cached;
       }
     } catch (err) {
       console.error("Cache read failed:", err.message);
@@ -53,6 +63,18 @@ export const redirectUrl = async (req, res, next) => {
 
     if (cachedUrl) {
       console.log(`CACHE HIT: ${shortCode}`);
+
+      if (cachedUrl.expiresAt && new Date() > new Date(cachedUrl.expiresAt)) {
+        try {
+          await deleteCachedUrl(shortCode);
+        } catch (err) {
+          console.error("Failed to delete expired cache key:", err.message);
+        }
+
+        const frontendUrl = process.env.CORS_ORIGIN;
+        return res.redirect(`${frontendUrl}/expired`);
+      }
+
       recordClick({
         urlId: cachedUrl.urlId,
         ipAddress: req.ip,
@@ -74,12 +96,25 @@ export const redirectUrl = async (req, res, next) => {
       });
     }
 
+    if (url.expiresAt && new Date() > new Date(url.expiresAt)) {
+      const frontendUrl = process.env.CORS_ORIGIN;
+      return res.redirect(`${frontendUrl}/expired`);
+    }
+
     try {
-      const dataToCache = JSON.stringify({
+      const dataToCache = {
         urlId: url._id,
         originalUrl: url.originalUrl,
-      });
-      await cacheUrl(shortCode, dataToCache);
+        expiresAt: url.expiresAt,
+      };
+      let ttlSeconds = null;
+      if (url.expiresAt) {
+        ttlSeconds = Math.floor(
+          (new Date(url.expiresAt).getTime() - Date.now()) / 1000,
+        );
+      }
+
+      await cacheUrl(shortCode, dataToCache, ttlSeconds);
     } catch (err) {
       console.error("Cache write failed:", err.message);
     }

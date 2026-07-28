@@ -18,6 +18,7 @@ const DashboardPage = () => {
   const [urls, setUrls] = useState<Url[]>([]);
   const [loading, setLoading] = useState(true);
   const [qrModalUrl, setQrModalUrl] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState("");
 
   const [newUrl, setNewUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,9 +46,11 @@ const DashboardPage = () => {
     try {
       setIsSubmitting(true);
       setError("");
-      await createUrl(newUrl);
+      await createUrl(newUrl, expiresAt || undefined);
       setNewUrl("");
+      setExpiresAt("");
       await fetchUrls();
+      toast.success("Short URL created!");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to create short URL");
     } finally {
@@ -92,23 +95,67 @@ const DashboardPage = () => {
     }
   };
 
+  const getExpirationStatus = (expiresAt: string | null | undefined) => {
+    if (!expiresAt)
+      return { label: "Permanent", color: "bg-gray-100 text-gray-600" };
+
+    const now = new Date();
+    const expDate = new Date(expiresAt);
+
+    if (now > expDate)
+      return {
+        label: "Expired",
+        color: "bg-red-100 text-red-700 font-medium border border-red-200",
+      };
+
+    const hoursLeft = (expDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    if (hoursLeft < 24)
+      return {
+        label: "Expiring Soon",
+        color:
+          "bg-orange-100 text-orange-700 font-medium border border-orange-200",
+      };
+
+    return {
+      label: "Active",
+      color: "bg-green-100 text-green-700 font-medium border border-green-200",
+    };
+  };
+
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="bg-white border border-gray-200 rounded-lg p-6 mb-8 shadow-sm">
         <h2 className="text-xl font-semibold mb-4">Create New Short URL</h2>
-        <form onSubmit={handleCreateUrl} className="flex gap-4">
+        <form
+          onSubmit={handleCreateUrl}
+          className="flex flex-col md:flex-row gap-4"
+        >
           <input
             type="url"
             required
             placeholder="https://example.com/very/long/url"
-            className="flex-1 border p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="flex-1 w-full border p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-200"
             value={newUrl}
             onChange={(e) => setNewUrl(e.target.value)}
           />
+
+          <div className="flex items-center bg-gray-50 border rounded-md px-3 w-full md:w-auto focus-within:ring-2 focus-within:ring-blue-200">
+            <span className="text-sm text-gray-500 mr-2 whitespace-nowrap">
+              Expires:
+            </span>
+            <input
+              type="datetime-local"
+              className="bg-transparent border-none text-sm focus:outline-none text-gray-700 py-3 w-full"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              min={new Date().toISOString().slice(0, 16)}
+            />
+          </div>
+
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-3 bg-black text-white rounded-md font-medium disabled:opacity-50 flex items-center justify-center min-w-30"
+            className="px-6 py-3 bg-black text-white rounded-md font-medium disabled:opacity-50 flex items-center justify-center w-full md:w-auto min-w-30 transition-opacity hover:opacity-90"
           >
             {isSubmitting ? (
               <Loader2 className="animate-spin h-5 w-5" />
@@ -159,6 +206,12 @@ const DashboardPage = () => {
                 </div>
 
                 <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                  <span
+                    className={`text-xs px-2.5 py-1 rounded-full ${getExpirationStatus(url.expiresAt).color}`}
+                  >
+                    {getExpirationStatus(url.expiresAt).label}
+                  </span>
+
                   <span className="text-sm text-gray-400 mr-4">
                     {new Date(url.createdAt).toLocaleDateString()}
                   </span>

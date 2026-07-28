@@ -7,11 +7,12 @@ export const getCachedUrl = async (shortCode) => {
   return data ? JSON.parse(data) : null;
 };
 
-export const cacheUrl = async (shortCode, urlData) => {
+export const cacheUrl = async (shortCode, urlData, ttlSeconds = null) => {
   const client = getRedisClient();
+  const expirationTime = ttlSeconds && ttlSeconds > 0 ? ttlSeconds : 3600;
 
   await client.set(`url:${shortCode}`, JSON.stringify(urlData), {
-    EX: 3600,
+    EX: expirationTime,
   });
 };
 
