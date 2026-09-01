@@ -6,7 +6,11 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "worker:kgs": "node src/workers/kgs.worker.js",
+    "worker:kgs:dev": "nodemon src/workers/kgs.worker.js",
+    "test": "node tests/test-kgs.js",
+    "test:kgs": "node tests/test-kgs.js"
   },
   "keywords": [],
   "author": "Saumyaketu Chand Gupta",

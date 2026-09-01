@@ -1,10 +1,9 @@
 import Url from "../models/Url.js";
-import { encodeBase62 } from "../utils/base62.js";
-import { getNextUrlId, deleteCachedUrl } from "./cache.service.js";
+import { acquireKey } from "./tokenBuffer.service.js";
+import { deleteCachedUrl } from "./cache.service.js";
 
 export const createShortUrl = async (originalUrl, userId, expiresAt) => {
-  const uniqueId = await getNextUrlId();
-  const shortCode = encodeBase62(uniqueId);
+  const shortCode = await acquireKey();
 
   const url = await Url.create({
     originalUrl,
