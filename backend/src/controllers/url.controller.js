@@ -12,6 +12,7 @@ import {
   cacheUrl,
   deleteCachedUrl,
 } from "../services/cache.service.js";
+import { checkBloomFilter } from "../services/bloom.service.js";
 
 export const createUrl = async (req, res, next) => {
   try {
@@ -50,6 +51,16 @@ export const createUrl = async (req, res, next) => {
 export const redirectUrl = async (req, res, next) => {
   try {
     const { shortCode } = req.params;
+
+    // Fast-path Bloom Filter Check (Cache Penetration / DDoS Defense)
+    const mightExist = await checkBloomFilter(shortCode);
+    if (!mightExist) {
+      return res.status(404).json({
+        success: false,
+        message: "URL not found",
+      });
+    }
+
     let cachedUrl = null;
 
     try {
@@ -64,11 +75,22 @@ export const redirectUrl = async (req, res, next) => {
     if (cachedUrl) {
       console.log(`CACHE HIT: ${shortCode}`);
 
-      if (cachedUrl.expiresAt && new Date() > new Date(cachedUrl.expiresAt)) {
-        try {
-          await deleteCachedUrl(shortCode);
-        } catch (err) {
-          console.error("Failed to delete expired cache key:", err.message);
+      const isExpired =
+        cachedUrl.isExpired ||
+        (cachedUrl.expiresAt && new Date() > new Date(cachedUrl.expiresAt));
+
+      if (isExpired) {
+        // Ensure 24-hour negative tombstone is set so subsequent requests never hit MongoDB
+        if (!cachedUrl.isExpired) {
+          try {
+            await cacheUrl(
+              shortCode,
+              { isExpired: true, expiresAt: cachedUrl.expiresAt },
+              86400,
+            );
+          } catch (err) {
+            console.error("Failed to update tombstone cache key:", err.message);
+          }
         }
 
         const frontendUrl = process.env.CORS_ORIGIN;
@@ -97,6 +119,17 @@ export const redirectUrl = async (req, res, next) => {
     }
 
     if (url.expiresAt && new Date() > new Date(url.expiresAt)) {
+      // Negative Caching: Store a 24-hour Expired Tombstone in Redis
+      try {
+        await cacheUrl(
+          shortCode,
+          { isExpired: true, expiresAt: url.expiresAt },
+          86400,
+        );
+      } catch (err) {
+        console.error("Failed to cache expired tombstone:", err.message);
+      }
+
       const frontendUrl = process.env.CORS_ORIGIN;
       return res.redirect(`${frontendUrl}/expired`);
     }

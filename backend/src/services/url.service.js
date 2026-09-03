@@ -1,6 +1,7 @@
 import Url from "../models/Url.js";
 import { acquireKey } from "./tokenBuffer.service.js";
 import { deleteCachedUrl } from "./cache.service.js";
+import { addToBloomFilter } from "./bloom.service.js";
 
 export const createShortUrl = async (originalUrl, userId, expiresAt) => {
   const shortCode = await acquireKey();
@@ -11,6 +12,9 @@ export const createShortUrl = async (originalUrl, userId, expiresAt) => {
     user: userId,
     expiresAt: expiresAt ? new Date(expiresAt) : null,
   });
+
+  // Register in Bloom Filter for instant positive detection
+  await addToBloomFilter(shortCode);
 
   return url;
 };
