@@ -21,6 +21,16 @@ services:
       - mongodb
       - redis
 
+  kgs-worker:
+    build:
+      context: ./backend
+    command: npm run worker:kgs
+    env_file:
+      - ./backend/.env.docker
+    depends_on:
+      - mongodb
+      - redis
+
   mongodb:
     image: mongo:8
     container_name: mongodb
