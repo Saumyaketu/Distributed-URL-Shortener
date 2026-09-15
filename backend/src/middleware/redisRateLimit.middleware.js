@@ -61,7 +61,7 @@ const handleRateLimitWithMongoDB = async (key, windowInSeconds, maxRequests, res
     const cacheDoc = await Cache.findOne({ key });
 
     if (!cacheDoc) {
-      await Cache.create({ key, value: "1", expiresAt });
+      await Cache.create({ key, value: 1, expiresAt });
       res.setHeader("X-RateLimit-Limit", maxRequests);
       res.setHeader("X-RateLimit-Remaining", maxRequests - 1);
       return next();
@@ -81,8 +81,8 @@ const handleRateLimitWithMongoDB = async (key, windowInSeconds, maxRequests, res
 
     await Cache.findOneAndUpdate(
       { key },
-      { value: (count + 1).toString(), expiresAt },
-      { new: true }
+      { value: count + 1, expiresAt },
+      { returnDocument: "after" }
     );
 
     res.setHeader("X-RateLimit-Limit", maxRequests);

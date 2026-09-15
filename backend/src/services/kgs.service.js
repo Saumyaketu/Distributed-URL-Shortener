@@ -1,6 +1,7 @@
 import { getRedisClient, isRedisConnected } from "../config/redis.js";
 import { encodeBase62 } from "../utils/base62.js";
 import Cache from "../models/Cache.js";
+import Counter from "../models/Counter.js";
 
 const KEY_POOL_KEY = "key_pool:available";
 const RANGE_COUNTER_KEY = "key_pool:range_counter";
@@ -8,34 +9,69 @@ const RANGE_COUNTER_KEY = "key_pool:range_counter";
 export const DEFAULT_BATCH_SIZE = 5000;
 export const DEFAULT_LOW_WATERMARK = 2000;
 
-export const allocateRangeBlock = async (blockSize = DEFAULT_BATCH_SIZE) => {
-  if (isRedisConnected()) {
-    try {
-      const client = getRedisClient();
-      const endId = await client.incrBy(RANGE_COUNTER_KEY, blockSize);
-      const startId = endId - blockSize + 1;
-      return { startId, endId };
-    } catch (error) {
-      console.error(
-        "Failed to allocate range block via Redis. Falling back to MongoDB:",
-        error.message,
-      );
-      return allocateRangeBlockFromMongoDB(blockSize);
+let isMigrated = false;
+
+const ensureCounterInitialized = async () => {
+  if (isMigrated) return;
+
+  try {
+    const existing = await Counter.findOne({ key: RANGE_COUNTER_KEY });
+    if (!existing) {
+      let startingValue = 0;
+
+      // 1. Check legacy Cache model
+      try {
+        const legacyDoc = await Cache.findOne({ key: RANGE_COUNTER_KEY });
+        if (legacyDoc && legacyDoc.value) {
+          const parsed = parseInt(legacyDoc.value, 10);
+          if (!isNaN(parsed) && parsed > startingValue) {
+            startingValue = parsed;
+          }
+        }
+      } catch (cacheErr) {
+        console.warn("[KGS] Could not read legacy Cache during counter initialization:", cacheErr.message);
+      }
+
+      // 2. Check Redis counter if connected
+      if (isRedisConnected()) {
+        try {
+          const client = getRedisClient();
+          const redisVal = await client.get(RANGE_COUNTER_KEY);
+          if (redisVal) {
+            const parsed = parseInt(redisVal, 10);
+            if (!isNaN(parsed) && parsed > startingValue) {
+              startingValue = parsed;
+            }
+          }
+        } catch (redisErr) {
+          console.warn("[KGS] Could not read Redis counter during initialization:", redisErr.message);
+        }
+      }
+
+      if (startingValue > 0) {
+        await Counter.findOneAndUpdate(
+          { key: RANGE_COUNTER_KEY },
+          { $setOnInsert: { value: startingValue } },
+          { upsert: true }
+        );
+        console.log(`[KGS] Migrated range counter to MongoDB Counter model at starting value: ${startingValue}`);
+      }
     }
-  } else {
-    return allocateRangeBlockFromMongoDB(blockSize);
+    isMigrated = true;
+  } catch (err) {
+    console.error("[KGS] Error checking counter initialization:", err.message);
   }
 };
 
-const allocateRangeBlockFromMongoDB = async (blockSize) => {
+
+export const allocateRangeBlock = async (blockSize = DEFAULT_BATCH_SIZE) => {
+  await ensureCounterInitialized();
+
   try {
-    const doc = await Cache.findOneAndUpdate(
+    const doc = await Counter.findOneAndUpdate(
       { key: RANGE_COUNTER_KEY },
-      {
-        $inc: { value: blockSize },
-        $setOnInsert: { expiresAt: null },
-      },
-      { upsert: true, new: true, setDefaultsOnInsert: true },
+      { $inc: { value: blockSize } },
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
     );
 
     const endId = typeof doc.value === "number" ? doc.value : parseInt(doc.value, 10);

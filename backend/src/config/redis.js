@@ -23,8 +23,9 @@ const syncMongoDBCacheToRedis = async () => {
   try {
     console.log("Syncing MongoDB cache to Redis...");
     
-    // Find all non-expired cache entries
+    // Find all non-expired cache entries (excluding range counter)
     const cacheEntries = await Cache.find({
+      key: { $ne: "key_pool:range_counter" },
       $or: [
         { expiresAt: null }, // No expiration
         { expiresAt: { $gt: new Date() } } // Not expired
@@ -43,13 +44,19 @@ const syncMongoDBCacheToRedis = async () => {
           if (ttl <= 0) continue; // Skip if already expired
         }
 
+        // Serialize: objects to JSON, primitives to raw string (prevents Redis INCR error on numeric counters)
+        const serializedValue =
+          typeof entry.value === "object" && entry.value !== null
+            ? JSON.stringify(entry.value)
+            : String(entry.value);
+
         // Sync to Redis
         if (ttl) {
-          await client.set(entry.key, JSON.stringify(entry.value), {
+          await client.set(entry.key, serializedValue, {
             EX: ttl,
           });
         } else {
-          await client.set(entry.key, JSON.stringify(entry.value));
+          await client.set(entry.key, serializedValue);
         }
         
         syncedCount++;

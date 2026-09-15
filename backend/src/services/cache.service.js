@@ -61,7 +61,7 @@ const setMongoDBCacheValue = async (key, value, ttlSeconds = 3600) => {
     await Cache.findOneAndUpdate(
       { key },
       { value, expiresAt },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
   } catch (error) {
     console.error(`Error setting MongoDB cache for key ${key}:`, error.message);
@@ -135,7 +135,7 @@ const getNextUrlIdFromMongoDB = async () => {
     await Cache.findOneAndUpdate(
       { key: "url_counter" },
       { value: currentId.toString() },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     );
     return currentId;
   } catch (error) {
