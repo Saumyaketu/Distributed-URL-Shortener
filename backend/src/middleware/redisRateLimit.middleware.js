@@ -1,5 +1,49 @@
 import { getRedisClient, isRedisConnected } from "../config/redis.js";
-import Cache from "../models/Cache.js";
+
+// In-memory fallback rate limiter for when Redis is offline
+const memoryStore = new Map();
+
+// Periodic cleanup every 5 minutes to prevent memory leaks
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, data] of memoryStore.entries()) {
+    if (data.expiresAt < now) {
+      memoryStore.delete(key);
+    }
+  }
+}, 5 * 60 * 1000).unref();
+
+const handleRateLimitInMemory = (key, windowInSeconds, maxRequests, res, next) => {
+  try {
+    const now = Date.now();
+    const entry = memoryStore.get(key);
+
+    if (!entry || entry.expiresAt < now) {
+      memoryStore.set(key, { count: 1, expiresAt: now + windowInSeconds * 1000 });
+      res.setHeader("X-RateLimit-Limit", maxRequests);
+      res.setHeader("X-RateLimit-Remaining", maxRequests - 1);
+      return next();
+    }
+
+    if (entry.count >= maxRequests) {
+      res.setHeader("X-RateLimit-Limit", maxRequests);
+      res.setHeader("X-RateLimit-Remaining", 0);
+      return res.status(429).json({
+        success: false,
+        message: "Too many requests.",
+        remainingRequests: 0,
+      });
+    }
+
+    entry.count += 1;
+    res.setHeader("X-RateLimit-Limit", maxRequests);
+    res.setHeader("X-RateLimit-Remaining", maxRequests - entry.count);
+    return next();
+  } catch (err) {
+    console.error("In-memory rate limiter error:", err.message);
+    next();
+  }
+};
 
 export const createRateLimiter = ({ windowInSeconds, maxRequests, prefix }) => {
   return async (req, res, next) => {
@@ -9,7 +53,6 @@ export const createRateLimiter = ({ windowInSeconds, maxRequests, prefix }) => {
 
       if (isRedisConnected()) {
         try {
-          // Try Redis first
           const client = getRedisClient();
           const current = await client.get(key);
 
@@ -37,62 +80,19 @@ export const createRateLimiter = ({ windowInSeconds, maxRequests, prefix }) => {
           await client.incr(key);
           res.setHeader("X-RateLimit-Limit", maxRequests);
           res.setHeader("X-RateLimit-Remaining", maxRequests - (count + 1));
-          next();
+          return next();
         } catch (redisError) {
-          // Real-time Redis failure detection - fall back to MongoDB
-          console.warn(`Redis rate limiter failed. Falling back to MongoDB:`, redisError.message);
-          await handleRateLimitWithMongoDB(key, windowInSeconds, maxRequests, res, next);
+          console.warn(`Redis rate limiter failed. Falling back to in-memory store:`, redisError.message);
+          return handleRateLimitInMemory(key, windowInSeconds, maxRequests, res, next);
         }
       } else {
-        // Redis not connected at startup - use MongoDB
-        await handleRateLimitWithMongoDB(key, windowInSeconds, maxRequests, res, next);
+        return handleRateLimitInMemory(key, windowInSeconds, maxRequests, res, next);
       }
     } catch (error) {
       console.error("Rate limiter error:", error.message);
       next();
     }
   };
-};
-
-const handleRateLimitWithMongoDB = async (key, windowInSeconds, maxRequests, res, next) => {
-  try {
-    const expiresAt = new Date(Date.now() + windowInSeconds * 1000);
-    
-    const cacheDoc = await Cache.findOne({ key });
-
-    if (!cacheDoc) {
-      await Cache.create({ key, value: 1, expiresAt });
-      res.setHeader("X-RateLimit-Limit", maxRequests);
-      res.setHeader("X-RateLimit-Remaining", maxRequests - 1);
-      return next();
-    }
-
-    const count = Number(cacheDoc.value);
-
-    if (count >= maxRequests) {
-      res.setHeader("X-RateLimit-Limit", maxRequests);
-      res.setHeader("X-RateLimit-Remaining", 0);
-      return res.status(429).json({
-        success: false,
-        message: "Too many requests.",
-        remainingRequests: 0,
-      });
-    }
-
-    await Cache.findOneAndUpdate(
-      { key },
-      { value: count + 1, expiresAt },
-      { returnDocument: "after" }
-    );
-
-    res.setHeader("X-RateLimit-Limit", maxRequests);
-    res.setHeader("X-RateLimit-Remaining", maxRequests - (count + 1));
-    next();
-  } catch (mongoError) {
-    console.error("MongoDB rate limiter fallback failed:", mongoError.message);
-    // If MongoDB also fails, allow the request through (fail open)
-    next();
-  }
 };
 
 export const authLimiter = createRateLimiter({

@@ -1,6 +1,5 @@
 import { getRedisClient, isRedisConnected } from "../config/redis.js";
 import { encodeBase62 } from "../utils/base62.js";
-import Cache from "../models/Cache.js";
 import Counter from "../models/Counter.js";
 
 const KEY_POOL_KEY = "key_pool:available";
@@ -19,20 +18,7 @@ const ensureCounterInitialized = async () => {
     if (!existing) {
       let startingValue = 0;
 
-      // 1. Check legacy Cache model
-      try {
-        const legacyDoc = await Cache.findOne({ key: RANGE_COUNTER_KEY });
-        if (legacyDoc && legacyDoc.value) {
-          const parsed = parseInt(legacyDoc.value, 10);
-          if (!isNaN(parsed) && parsed > startingValue) {
-            startingValue = parsed;
-          }
-        }
-      } catch (cacheErr) {
-        console.warn("[KGS] Could not read legacy Cache during counter initialization:", cacheErr.message);
-      }
-
-      // 2. Check Redis counter if connected
+      // Check Redis counter if connected
       if (isRedisConnected()) {
         try {
           const client = getRedisClient();
